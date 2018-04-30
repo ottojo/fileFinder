@@ -8,18 +8,22 @@ import (
 	"os/exec"
 )
 
-var searchString = "word"
+var rootFolder string
+var searchString string
+var maxFileSize int64
+var minFileSize int64
 
 func visit(path string, f os.FileInfo, err error) error {
 	if f.IsDir() {
 		return nil
 	}
 
-	if f.Size() > 4000000 {
+	if f.Size() > maxFileSize || f.Size() < minFileSize {
 		return nil
 	}
 
 	o, err := exec.Command("grep", searchString, path).Output()
+
 	if len(o) == 0 {
 		return nil
 	} else {
@@ -30,9 +34,14 @@ func visit(path string, f os.FileInfo, err error) error {
 }
 
 func main() {
+	flag.Int64Var(&maxFileSize, "maxFileSize", 5000000, "Maximum File Size in bytes")
+	flag.Int64Var(&minFileSize, "minFileSize", 1, "Minimum File Size in bytes")
+	flag.StringVar(&searchString, "searchString", "word", "String to search for")
+	flag.StringVar(&rootFolder, "rootFolder", ".", "Root search folder")
 	flag.Parse()
-	root := flag.Arg(0)
-	searchString = flag.Arg(1)
-	err := filepath.Walk(root, visit)
-	log.Printf("filepath.Walk() returned %v\n", err)
+
+	err := filepath.Walk(rootFolder, visit)
+	if err != nil {
+		log.Panic(err)
+	}
 }
